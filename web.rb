@@ -35,14 +35,29 @@ class Web < Sinatra::Base
     cache_control :public, max_age: 36000 unless @query
   end
 
-  get '/' do
+  get '/', provides: [:html, :json] do
     @sessions = Session.order(:year, :number).all.group_by(&:year)
 
-    haml :index
+    respond_to do |f|
+      f.html {haml :index}
+      f.json {Session.select(:number, :title, :description, :year, :track).order(:year, :number).to_json}
+    end
   end
-
+  
   get '/contribute' do
     haml :contribute
+  end
+  
+  get '/years', provides: [:json] do
+    respond_to do |f|
+      f.json {Session.select(:year).group_by(:year).order(:year).to_json}
+    end
+  end
+  
+  get '/:year/sessions', provides: [:json] do
+    respond_to do |f|
+      f.json {Session.select(:number, :title, :description, :year, :track).where(year: params[:year]).order(:number).to_json}
+    end
   end
 
   get '/:year/sessions/:number', provides: [:html, :json, :vtt, :txt] do
